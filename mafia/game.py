@@ -22,6 +22,7 @@ class Game:
 
     def __init__(self, guild: discord.Guild):
         self.guild = guild
+        self.game_task = None
 
         self.roles = []
         self.players = []
@@ -60,6 +61,7 @@ class Game:
             return False            
             
         if len(self.players) == 0:
+            await self.cleanup()
             await ctx.send("No players to start the game!\nJoin the game with `[p]mafia join`")
             return True
         
@@ -83,7 +85,7 @@ class Game:
                 return False
     
         # Create and Assign Game Roles
-        if not await self._set_roles():
+        if not await self._create_game_roles():
             return False
 
         if not await self._assign_roles(self.roles):
@@ -182,11 +184,16 @@ class Game:
 
     async def cleanup(self):
         # Delete Discord stuff
-        await self.game_role.delete(reason="(BOT) Mafia Game Has Ended")
-        await self.village_channel.delete(reason="(BOT) Mafia Game Has Ended")
-        await self.channel_category.delete(reason="(BOT) Mafia Game Has Ended")
+        if self.game_role is not None:
+            await self.game_role.delete(reason="(BOT) Mafia Game Has Ended")
+        if self.village_channel is not None:
+            await self.village_channel.delete(reason="(BOT) Mafia Game Has Ended") 
+        if self.channel_category is not None:
+            await self.channel_category.delete(reason="(BOT) Mafia Game Has Ended")
 
         # Reset Variables
+        self.game_task = None
+
         self.roles = []
         self.players = []
         self.join_queue = []
@@ -195,6 +202,7 @@ class Game:
         self.vote_totals = {}
 
         self.started = False
+        self.game_over = True
 
         self.game_role = None
         self.channel_category = None
